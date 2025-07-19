@@ -1,0 +1,95 @@
+// Firestore Rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Function to check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Function to check if the user is an admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == 'sugus7215@gmail.com' || 
+              request.auth.token.email.matches('.*@admin\\.com$'));
+    }
+    
+    // Function to check if the user is the owner of the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.token.email == userId;
+    }
+    
+    // Universal access for development purposes - REMOVE IN PRODUCTION
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // THE RULES BELOW ARE CURRENTLY INACTIVE DUE TO THE UNIVERSAL RULE ABOVE
+    // TO ACTIVATE THESE RULES, REMOVE THE UNIVERSAL RULE ABOVE
+    
+    // Orders collection
+    match /orders/{orderId} {
+      // Anyone can create orders when signed in
+      allow create: if isAuthenticated();
+      
+      // Open read access for development purposes
+      // In production, restrict to owner and admins
+      allow read: if true;
+      
+      // Only admin or document owner can update
+      allow update: if isAdmin() || 
+                    (isAuthenticated() && resource.data.userId == request.auth.token.email);
+      
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+    
+    // Reviews collection
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+      
+      // Must be authenticated to create a review
+      allow create: if isAuthenticated();
+      
+      // Only admin or the user who created the review can update/delete
+      allow update, delete: if isAdmin() || 
+                            (isAuthenticated() && resource.data.userId == request.auth.token.email);
+    }
+    
+    // Products collection
+    match /products/{productId} {
+      // Anyone can read products
+      allow read: if true;
+      
+      // Only admins can write to products
+      allow write: if isAdmin();
+    }
+    
+    // User data
+    match /users/{userId} {
+      // Users can read their own data, admins can read any
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can write to their own data, admins can write to any
+      allow write: if isOwner(userId) || isAdmin();
+      
+      // Access to user's order history
+      match /orders/{orderId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
+      }
+    }
+    
+    // Cart data
+    match /carts/{userId} {
+      // Only the user who owns the cart or admin can access it
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Admin-only collections
+    match /admin/{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+} 
