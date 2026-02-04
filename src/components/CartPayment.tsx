@@ -28,41 +28,49 @@ const CartPayment = () => {
 
   const handleCheckout = () => {
     if (!session) {
-      alert("Please sign in to checkout");
+      // Mock sign in for now or redirect
+      router.push("/api/auth/signin");
       return;
     }
-    // Add checkout logic here
     router.push("/checkout");
   };
 
   const totalItems = productData.reduce((total: number, item: any) => total + item.quantity, 0);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <div className="flex justify-between">
-          <p>Subtotal ({totalItems} items):</p>
-          <p className="font-semibold">
-            <FormattedPrice amount={totalAmount} />
-          </p>
+    <div className="flex flex-col gap-4 bg-white p-4">
+      <div className="flex flex-col gap-2">
+        {/* Free Delivery Progress Mock */}
+        <div className="text-sm">
+          <span className="text-green-700 font-medium">Part of your order qualifies for FREE Delivery.</span>
+          <span className="text-gray-500 ml-1">Select this option at checkout. Details</span>
         </div>
-        <div className="flex justify-between">
-          <p>Shipping:</p>
-          <p className="text-green-600">Free</p>
+
+        <div className="flex items-center gap-2 text-lg font-medium mt-2">
+          <span>Subtotal ({totalItems} items):</span>
+          <span className="font-bold">
+            <FormattedPrice amount={totalAmount * 10} />
+          </span>
         </div>
-        <div className="flex justify-between border-t border-gray-400 pt-2 mt-2">
-          <p className="font-bold">Order Total:</p>
-          <p className="font-bold">
-            <FormattedPrice amount={totalAmount} />
-          </p>
+
+        <div className="flex items-center gap-2">
+          <input type="checkbox" className="w-4 h-4" />
+          <span className="text-sm">This order contains a gift</span>
         </div>
       </div>
+
       <button
         onClick={handleCheckout}
-        className="w-full h-10 text-sm font-semibold bg-amazon_blue text-white rounded-lg hover:bg-amazon_yellow hover:text-black duration-300"
+        className="w-full h-10 text-sm font-medium bg-[#FFD814] border border-[#FCD200] rounded-lg hover:bg-[#F7CA00] shadow-sm mt-2 text-black"
       >
-        Proceed to Checkout
+        Proceed to Buy
       </button>
+
+      {/* EMI Mock */}
+      <div className="border border-gray-300 rounded-md p-3 mt-4">
+        <p className="text-sm font-semibold">EMI Available</p>
+        <p className="text-sm text-gray-500 mt-1">Your order qualifies for EMI with valid credit cards (not available on purchase of Gold/Jewelry, Gift cards and Amazon pay balance top up). <span className="text-[#007185] hover:underline cursor-pointer">Learn more</span></p>
+      </div>
     </div>
   );
 };
