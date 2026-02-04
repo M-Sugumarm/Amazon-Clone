@@ -278,29 +278,34 @@ export async function getStaticPaths() {
   try {
     const res = await fetch('https://fakestoreapi.com/products');
 
-    if (!res.ok) {
-      throw new Error('Failed to fetch products');
+    if (res.ok) {
+      const products = await res.json();
+      const { additionalProducts } = await import('@/constants/mockData');
+
+      // Combine API products and mock products
+      const allProducts = [...products, ...additionalProducts];
+
+      const paths = allProducts.map((product: ProductProps) => ({
+        params: { id: product.id.toString() },
+      }));
+
+      return { paths, fallback: true };
     }
-
-    const products = await res.json();
-    const { additionalProducts } = await import('@/constants/mockData');
-
-    // Combine API products and mock products
-    const allProducts = [...products, ...additionalProducts];
-
-    const paths = allProducts.map((product: ProductProps) => ({
-      params: { id: product.id.toString() },
-    }));
-
-    return { paths, fallback: true };
   } catch (error) {
-    console.error('Error in getStaticPaths:', error);
-    // Fallback to just mock products if API fails
+    console.warn('API fetch failed during build, using mock data only:', error);
+  }
+
+  // Fallback to just mock products if API fails or is unavailable
+  try {
     const { additionalProducts } = await import('@/constants/mockData');
     const paths = additionalProducts.map((product: ProductProps) => ({
       params: { id: product.id.toString() },
     }));
     return { paths, fallback: true };
+  } catch (fallbackError) {
+    console.error('Failed to load mock data:', fallbackError);
+    // Return empty paths with fallback enabled as last resort
+    return { paths: [], fallback: true };
   }
 }
 
