@@ -11,8 +11,7 @@ interface Props {
 }
 
 
-// ... (imports remain the same, adding additionalProducts)
-import { additionalProducts } from "@/constants/mockData";
+// ... (imports remain the same)
 import { GetServerSideProps } from "next";
 
 interface Props {
@@ -147,34 +146,31 @@ export default function Home({ productData }: Props) {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   try {
     const { category } = context.query;
-    console.log("Fetching product data from API...");
-    const res = await fetch("https://fakestoreapi.com/products");
+    console.log("Fetching product data from Firebase Firestore...");
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch products: ${res.statusText}`);
-    }
+    // Import firebaseService dynamically to avoid initialization issues
+    const { getCustomProducts } = await import('@/services/firebaseService');
+    const allProducts = await getCustomProducts();
 
-    const apiData: ProductProps[] = await res.json();
+    console.log(`Fetched ${allProducts.length} products from Firestore`);
 
-    // Combine API data with Mock Data
-    const combinedData = [...apiData, ...additionalProducts];
-
-    let filteredData = combinedData;
+    let filteredData = allProducts;
 
     // Filter Logic
     if (category && typeof category === 'string') {
       console.log(`Filtering for category: ${category}`);
       if (category === "Best Sellers") {
-        // Mock logic for best sellers: just show everything or random selection
-        filteredData = combinedData;
+        // Show all products for best sellers
+        filteredData = allProducts;
       } else if (category === "New Releases") {
-        // Mock logic: Show last 10
-        filteredData = combinedData.slice(-10);
+        // Show last 10 products
+        filteredData = allProducts.slice(-10);
       } else if (category === "Todays Deals") {
-        // Mock logic: Show random slice
-        filteredData = combinedData.slice(0, 8);
+        // Show first 8 products
+        filteredData = allProducts.slice(0, 8);
       } else {
-        filteredData = combinedData.filter(item =>
+        // Filter by exact category match
+        filteredData = allProducts.filter(item =>
           item.category.toLowerCase() === category.toLowerCase()
         );
       }

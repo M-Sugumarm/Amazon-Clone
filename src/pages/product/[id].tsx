@@ -276,91 +276,44 @@ const ProductDetails = ({ product }: { product: ProductProps }) => {
 
 export async function getStaticPaths() {
   try {
-    const res = await fetch('https://fakestoreapi.com/products');
+    const { getCustomProducts } = await import('@/services/firebaseService');
+    const products = await getCustomProducts();
 
-    if (res.ok) {
-      const products = await res.json();
-      const { additionalProducts } = await import('@/constants/mockData');
-
-      // Combine API products and mock products
-      const allProducts = [...products, ...additionalProducts];
-
-      const paths = allProducts.map((product: ProductProps) => ({
-        params: { id: product.id.toString() },
-      }));
-
-      return { paths, fallback: true };
-    }
-  } catch (error) {
-    console.warn('API fetch failed during build, using mock data only:', error);
-  }
-
-  // Fallback to just mock products if API fails or is unavailable
-  try {
-    const { additionalProducts } = await import('@/constants/mockData');
-    const paths = additionalProducts.map((product: ProductProps) => ({
+    const paths = products.map((product: ProductProps) => ({
       params: { id: product.id.toString() },
     }));
-    return { paths, fallback: true };
-  } catch (fallbackError) {
-    console.error('Failed to load mock data:', fallbackError);
-    // Return empty paths with fallback enabled as last resort
-    return { paths: [], fallback: true };
+
+    return {
+      paths,
+      fallback: 'blocking' // Use blocking fallback for better SEO
+    };
+  } catch (error) {
+    console.error('Error fetching products for static paths:', error);
+    // Return empty paths with fallback enabled
+    return { paths: [], fallback: 'blocking' };
   }
 }
 
 export async function getStaticProps({ params }: { params: { id: string } }) {
   try {
-    // Try to fetch from API first
-    const res = await fetch(`https://fakestoreapi.com/products/${params.id}`);
+    const { getProductById } = await import('@/services/firebaseService');
+    const product = await getProductById(params.id);
 
-    if (res.ok) {
-      const product = await res.json();
+    if (product) {
       return {
         props: {
           product,
         },
-        revalidate: 60,
+        revalidate: 3600, // Revalidate every hour
       };
     }
 
-    // If API fails or product not found, check mock data
-    const { additionalProducts } = await import('@/constants/mockData');
-    const mockProduct = additionalProducts.find(p => p.id.toString() === params.id);
-
-    if (mockProduct) {
-      return {
-        props: {
-          product: mockProduct,
-        },
-        revalidate: 60,
-      };
-    }
-
-    // If not found in either source, return notFound
+    // If product not found
     return {
       notFound: true,
     };
   } catch (error) {
     console.error('Error in getStaticProps:', error);
-
-    // Final fallback: try to find in mock data
-    try {
-      const { additionalProducts } = await import('@/constants/mockData');
-      const mockProduct = additionalProducts.find(p => p.id.toString() === params.id);
-
-      if (mockProduct) {
-        return {
-          props: {
-            product: mockProduct,
-          },
-          revalidate: 60,
-        };
-      }
-    } catch (fallbackError) {
-      console.error('Error loading mock data:', fallbackError);
-    }
-
     return {
       notFound: true,
     };

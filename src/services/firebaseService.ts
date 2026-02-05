@@ -1,15 +1,15 @@
 import { db } from '../firebase';
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
   serverTimestamp,
   setDoc
 } from 'firebase/firestore';
@@ -27,7 +27,7 @@ export const saveReview = async (reviewData: Omit<Review, 'id'>): Promise<string
       ...reviewData,
       createdAt: serverTimestamp()
     };
-    
+
     const docRef = await addDoc(collection(db, 'reviews'), reviewWithTimestamp);
     return docRef.id;
   } catch (error) {
@@ -45,10 +45,10 @@ export const getReviewsByProductId = async (productId: number): Promise<Review[]
         where('productId', '==', productId),
         orderBy('createdAt', 'desc')
       );
-      
+
       const querySnapshot = await getDocs(q);
       const reviews: Review[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         reviews.push({
@@ -57,21 +57,21 @@ export const getReviewsByProductId = async (productId: number): Promise<Review[]
           createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         } as Review);
       });
-      
+
       return reviews;
     } catch (indexError) {
       // Fall back to a simpler query without sorting if we get an index error
       console.warn("Index error in reviews query. Falling back to unsorted query:", indexError);
-      
+
       // Simple query that doesn't require a composite index
       const fallbackQuery = query(
         collection(db, 'reviews'),
         where('productId', '==', productId)
       );
-      
+
       const querySnapshot = await getDocs(fallbackQuery);
       const reviews: Review[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         reviews.push({
@@ -80,14 +80,14 @@ export const getReviewsByProductId = async (productId: number): Promise<Review[]
           createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         } as Review);
       });
-      
+
       // Sort the reviews in memory
       reviews.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
         const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
         return dateB.getTime() - dateA.getTime();
       });
-      
+
       return reviews;
     }
   } catch (error) {
@@ -103,10 +103,10 @@ export const getAllReviews = async (): Promise<Review[]> => {
       collection(db, 'reviews'),
       orderBy('createdAt', 'desc')
     );
-    
+
     const querySnapshot = await getDocs(q);
     const reviews: Review[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       reviews.push({
@@ -115,7 +115,7 @@ export const getAllReviews = async (): Promise<Review[]> => {
         createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
       } as Review);
     });
-    
+
     return reviews;
   } catch (error) {
     console.error('Error fetching all reviews:', error);
@@ -139,7 +139,7 @@ export const saveOrder = async (orderData: Omit<Order, 'id'>): Promise<string> =
       ...orderData,
       createdAt: serverTimestamp()
     };
-    
+
     const docRef = await addDoc(collection(db, 'orders'), orderWithTimestamp);
     return docRef.id;
   } catch (error) {
@@ -151,19 +151,19 @@ export const saveOrder = async (orderData: Omit<Order, 'id'>): Promise<string> =
 export const getAllOrders = async (): Promise<Order[]> => {
   try {
     console.log("Fetching all orders from Firebase...");
-    
+
     // Remove Firebase auth check since we're using Next.js authentication
     // Instead, the admin check should happen in the component that calls this function
-    
+
     // Create the query
     const q = query(
       collection(db, 'orders'),
       orderBy('createdAt', 'desc')
     );
-    
+
     // Log the query for debugging
     console.log("Executing orders query:", q);
-    
+
     // Execute the query with better error handling
     const querySnapshot = await getDocs(q).catch(error => {
       console.error("Firebase query error:", error);
@@ -172,25 +172,25 @@ export const getAllOrders = async (): Promise<Order[]> => {
       }
       throw error;
     });
-    
+
     const orders: Order[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       // Handle both server timestamps and ISO strings
-      const createdAt = data.createdAt 
-        ? (typeof data.createdAt.toDate === 'function' 
-          ? data.createdAt.toDate().toISOString() 
-          : data.createdAt) 
+      const createdAt = data.createdAt
+        ? (typeof data.createdAt.toDate === 'function'
+          ? data.createdAt.toDate().toISOString()
+          : data.createdAt)
         : new Date().toISOString();
-        
+
       orders.push({
         id: doc.id,
         ...data,
         createdAt,
       } as Order);
     });
-    
+
     console.log(`Successfully fetched ${orders.length} orders`);
     return orders;
   } catch (error) {
@@ -206,10 +206,10 @@ export const getOrdersByUserId = async (userId: string): Promise<Order[]> => {
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
     );
-    
+
     const querySnapshot = await getDocs(q);
     const orders: Order[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       orders.push({
@@ -218,7 +218,7 @@ export const getOrdersByUserId = async (userId: string): Promise<Order[]> => {
         createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
       } as Order);
     });
-    
+
     return orders;
   } catch (error) {
     console.error('Error fetching user orders:', error);
@@ -241,11 +241,11 @@ export const getCustomProducts = async (): Promise<ProductProps[]> => {
   try {
     const productsSnapshot = await getDocs(collection(db, 'products'));
     const products: ProductProps[] = [];
-    
+
     productsSnapshot.forEach((doc) => {
       products.push({ id: parseInt(doc.id), ...doc.data() } as ProductProps);
     });
-    
+
     return products;
   } catch (error) {
     console.error('Error fetching custom products:', error);
@@ -253,13 +253,29 @@ export const getCustomProducts = async (): Promise<ProductProps[]> => {
   }
 };
 
+export const getProductById = async (productId: string): Promise<ProductProps | null> => {
+  try {
+    const productRef = doc(db, 'products', productId);
+    const productDoc = await getDoc(productRef);
+
+    if (productDoc.exists()) {
+      return { id: parseInt(productDoc.id), ...productDoc.data() } as ProductProps;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching product by ID:', error);
+    return null;
+  }
+};
+
 export const saveOrUpdateProduct = async (product: ProductProps): Promise<boolean> => {
   try {
     const productRef = doc(db, 'products', product.id.toString());
-    
+
     // Check if the product document exists
     const productDoc = await getDoc(productRef);
-    
+
     if (productDoc.exists()) {
       // Update existing document
       await setDoc(productRef, { ...productDoc.data(), ...product }, { merge: true });
@@ -267,7 +283,7 @@ export const saveOrUpdateProduct = async (product: ProductProps): Promise<boolea
       // Create new document
       await setDoc(productRef, { ...product });
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error saving product:', error);
@@ -285,5 +301,6 @@ export default {
   getOrdersByUserId,
   updateOrderStatus,
   getCustomProducts,
+  getProductById,
   saveOrUpdateProduct
 }; 
